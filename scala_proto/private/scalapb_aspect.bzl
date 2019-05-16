@@ -12,6 +12,7 @@ ScalaPBAspectInfo = provider(fields = [
     "src_jars",
     "output_files",
     "java_info",
+    "additional_srcs",
 ])
 
 
@@ -37,6 +38,7 @@ def merge_scalapb_aspect_info(scalapbs):
         output_files = depset(transitive = [s.output_files for s in scalapbs]),
         proto_info = merge_proto_infos([s.proto_info for s in scalapbs]),
         java_info = java_common.merge([s.java_info for s in scalapbs]),
+        additional_srcs = depset(transitive = [s.additional_srcs for s in scalapbs]),
     )
 
 
@@ -57,7 +59,9 @@ def _compile_scala(
         output,
         scalapb_jar,
         deps_java_info,
-        implicit_deps):
+        implicit_deps,
+        additional_srcs
+        ):
     manifest = ctx.actions.declare_file(
         label.name + "_MANIFEST.MF",
         sibling = scalapb_jar,
@@ -79,7 +83,7 @@ def _compile_scala(
         output,
         manifest,
         statsfile,
-        sources = [],
+        sources = additional_srcs,
         cjars = merged_deps.compile_jars,
         all_srcjars = depset([scalapb_jar]),
         transitive_compile_jars = merged_deps.transitive_compile_time_jars,
@@ -113,6 +117,7 @@ def _empty_java_info(deps_java_info, implicit_deps):
 # invocation assuming it has some sources.
 def _scalapb_aspect_impl(target, ctx):
     deps = [d[ScalaPBAspectInfo].java_info for d in ctx.rule.attr.deps]
+    additional_srcs     = depset([ctx.rule.attr.additional_srcs])
 
     if ProtoInfo not in target:
         # We allow some dependencies which are not protobuf, but instead
@@ -136,8 +141,8 @@ def _scalapb_aspect_impl(target, ctx):
             ] + [target_ti],
         )
         # we sort so the inputs are always the same for caching
-        compile_protos = sorted(target_ti.direct_sources)
-        transitive_protos = sorted(target_ti.transitive_sources)
+        compile_protos      = sorted(target_ti.direct_sources)
+        transitive_protos   = sorted(target_ti.transitive_sources)
 
         toolchain = ctx.toolchains["@io_bazel_rules_scala//scala_proto:toolchain_type"]
         flags = []
@@ -201,6 +206,7 @@ def _scalapb_aspect_impl(target, ctx):
                 scalapb_file,
                 deps,
                 imps,
+                additional_srcs
             )
         else:
             # this target is only an aggregation target

@@ -43,7 +43,8 @@ def scala_proto_repositories(
 Example:
     scalapb_proto_library(
         name = "exampla_proto_scala",
-        deps = ["//src/proto:example_service"]
+        deps = ["//src/proto:example_service"],
+        additional_srcs = ["//src/proto:example_service"],
     )
 
 Args:
@@ -71,7 +72,8 @@ def _scalapb_proto_library_impl(ctx):
 scalapb_proto_library = rule(
     implementation = _scalapb_proto_library_impl,
     attrs = {
-        "deps": attr.label_list(aspects = [scalapb_aspect])
+        "deps": attr.label_list(aspects = [scalapb_aspect]),
+        "additional_srcs": attr.label_list(),
     },
     provides = [DefaultInfo, ScalaPBInfo, JavaInfo],
 )
